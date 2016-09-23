@@ -9067,12 +9067,22 @@ static netdev_features_t i40e_features_check(struct sk_buff *skb,
 }
 
 #ifdef CONFIG_NETPOLICY
+/* Interrupt moderation in microseconds */
+#define NET_POLICY_CPU_RX	125
+#define NET_POLICY_CPU_TX	250
+#define NET_POLICY_BULK_RX	50
+#define NET_POLICY_BULK_TX	125
+#define NET_POLICY_LATENCY_RX	5
+#define NET_POLICY_LATENCY_TX	10
 
 #define NET_POLICY_NOT_SUPPORT	-2
 #define NET_POLICY_END		-3
 static int policy_param[NET_POLICY_MAX + 1][2] = {
 	/* rx-usec, tx-usec */
 	{0, 0},
+	{NET_POLICY_CPU_RX, NET_POLICY_CPU_TX},		/* CPU policy */
+	{NET_POLICY_BULK_RX, NET_POLICY_BULK_TX},	/* BULK policy */
+	{NET_POLICY_LATENCY_RX, NET_POLICY_LATENCY_TX},	/* LATENCY policy */
 
 	{NET_POLICY_END, NET_POLICY_END},
 };
