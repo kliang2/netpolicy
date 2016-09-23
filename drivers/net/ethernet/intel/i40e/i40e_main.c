@@ -9115,6 +9115,8 @@ static int i40e_ndo_netpolicy_init(struct net_device *dev,
 	/* support MIX policy */
 	info->has_mix_policy = true;
 
+	info->queue_pair = true;
+
 	return 0;
 }
 
