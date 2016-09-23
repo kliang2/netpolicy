@@ -9117,6 +9117,8 @@ static int i40e_ndo_netpolicy_init(struct net_device *dev,
 
 	info->queue_pair = true;
 
+	info->irq_affinity = true;
+
 	return 0;
 }
 
