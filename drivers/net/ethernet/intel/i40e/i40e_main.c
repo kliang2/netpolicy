@@ -9102,6 +9102,45 @@ static int i40e_ndo_netpolicy_init(struct net_device *dev,
 
 	return 0;
 }
+
+/**
+ * i40e_ndo_get_irq_info
+ * @dev: the net device pointer
+ * @info: irq information which need to be updated
+ *
+ * Update irq information of tx and rx queues
+ * Returns 0 on success, negative on failure
+ */
+static int i40e_ndo_get_irq_info(struct net_device *dev,
+				 struct netpolicy_dev_info *info)
+{
+	struct i40e_netdev_priv *np = netdev_priv(dev);
+	struct i40e_vsi *vsi = np->vsi;
+	struct i40e_pf *pf = vsi->back;
+	int i;
+
+	info->rx_num = vsi->num_queue_pairs;
+	info->rx_irq = kmalloc_array(info->rx_num, sizeof(u32), GFP_KERNEL);
+	if (!info->rx_irq) {
+		info->rx_num = 0;
+		return -ENOMEM;
+	}
+
+	info->tx_num = vsi->num_queue_pairs;
+	info->tx_irq = kmalloc_array(info->tx_num, sizeof(u32), GFP_KERNEL);
+	if (!info->tx_irq) {
+		info->tx_num = 0;
+		kfree(info->rx_irq);
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < vsi->num_queue_pairs; i++) {
+		info->rx_irq[i] = pf->msix_entries[vsi->base_vector + i].vector;
+		info->tx_irq[i] = pf->msix_entries[vsi->base_vector + i].vector;
+	}
+
+	return 0;
+}
 #endif /* CONFIG_NETPOLICY */
 
 static const struct net_device_ops i40e_netdev_ops = {
@@ -9142,6 +9181,7 @@ static const struct net_device_ops i40e_netdev_ops = {
 	.ndo_bridge_setlink	= i40e_ndo_bridge_setlink,
 #ifdef CONFIG_NETPOLICY
 	.ndo_netpolicy_init	= i40e_ndo_netpolicy_init,
+	.ndo_get_irq_info	= i40e_ndo_get_irq_info,
 #endif /* CONFIG_NETPOLICY */
 };
 
