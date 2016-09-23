@@ -2614,6 +2614,32 @@ static int i40e_del_fdir_entry(struct i40e_vsi *vsi,
 	return ret;
 }
 
+static int find_empty_slot(struct i40e_pf *pf)
+{
+	struct i40e_fdir_filter *rule;
+	struct hlist_node *node2;
+	__u32 data = i40e_get_fd_cnt_all(pf);
+	unsigned long *slot;
+	int i;
+
+	slot = kzalloc(BITS_TO_LONGS(data) * sizeof(long), GFP_KERNEL);
+	if (!slot)
+		return -ENOMEM;
+
+	hlist_for_each_entry_safe(rule, node2,
+				  &pf->fdir_filter_list, fdir_node) {
+		set_bit(rule->fd_id, slot);
+	}
+
+	for (i = data - 1; i > 0; i--) {
+		if (!test_bit(i, slot))
+			break;
+	}
+	kfree(slot);
+
+	return i;
+}
+
 /**
  * i40e_add_fdir_ethtool - Add/Remove Flow Director filters
  * @vsi: pointer to the targeted VSI
@@ -2650,9 +2676,15 @@ static int i40e_add_fdir_ethtool(struct i40e_vsi *vsi,
 
 	fsp = (struct ethtool_rx_flow_spec *)&cmd->fs;
 
-	if (fsp->location >= (pf->hw.func_caps.fd_filters_best_effort +
-			      pf->hw.func_caps.fd_filters_guaranteed)) {
-		return -EINVAL;
+	if (fsp->location != RX_CLS_LOC_ANY) {
+		if (fsp->location >= (pf->hw.func_caps.fd_filters_best_effort +
+				      pf->hw.func_caps.fd_filters_guaranteed)) {
+			return -EINVAL;
+		}
+	} else {
+		fsp->location = find_empty_slot(pf);
+		if (fsp->location < 0)
+			return -ENOSPC;
 	}
 
 	if ((fsp->ring_cookie != RX_CLS_FLOW_DISC) &&
