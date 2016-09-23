@@ -2022,9 +2022,9 @@ static int i40e_get_per_queue_coalesce(struct net_device *netdev, u32 queue,
 	return __i40e_get_coalesce(netdev, ec, queue);
 }
 
-static void i40e_set_itr_per_queue(struct i40e_vsi *vsi,
-				   struct ethtool_coalesce *ec,
-				   int queue)
+void i40e_set_itr_per_queue(struct i40e_vsi *vsi,
+			    struct ethtool_coalesce *ec,
+			    int queue)
 {
 	struct i40e_pf *pf = vsi->back;
 	struct i40e_hw *hw = &pf->hw;

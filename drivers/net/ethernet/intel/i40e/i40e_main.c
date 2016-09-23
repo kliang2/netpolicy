@@ -9141,6 +9141,48 @@ static int i40e_ndo_get_irq_info(struct net_device *dev,
 
 	return 0;
 }
+
+/**
+ * i40e_set_net_policy
+ * @dev: the net device pointer
+ * @name: policy name
+ *
+ * set policy to each tx and rx queue
+ * Returns 0 on success, negative on failure
+ */
+static int i40e_set_net_policy(struct net_device *dev,
+			       enum netpolicy_name name)
+{
+	struct i40e_netdev_priv *np = netdev_priv(dev);
+	struct i40e_vsi *vsi = np->vsi;
+	struct netpolicy_object *obj;
+	struct ethtool_coalesce ec;
+
+	if (policy_param[name][NETPOLICY_RX] > 0) {
+		ec.rx_coalesce_usecs = policy_param[name][NETPOLICY_RX];
+		ec.use_adaptive_rx_coalesce = 0;
+	} else if (policy_param[name][NETPOLICY_RX] == 0) {
+		ec.use_adaptive_rx_coalesce = 1;
+	} else {
+		return -EINVAL;
+	}
+
+	if (policy_param[name][NETPOLICY_TX] > 0) {
+		ec.tx_coalesce_usecs = policy_param[name][NETPOLICY_TX];
+		ec.use_adaptive_tx_coalesce = 0;
+	} else if (policy_param[name][NETPOLICY_TX] == 0) {
+		ec.use_adaptive_tx_coalesce = 1;
+	} else {
+		return -EINVAL;
+	}
+
+	/*For i40e driver, tx and rx are always in pair */
+	list_for_each_entry(obj, &dev->netpolicy->obj_list[NETPOLICY_RX][name], list) {
+		i40e_set_itr_per_queue(vsi, &ec, obj->queue);
+	}
+
+	return 0;
+}
 #endif /* CONFIG_NETPOLICY */
 
 static const struct net_device_ops i40e_netdev_ops = {
@@ -9182,6 +9224,7 @@ static const struct net_device_ops i40e_netdev_ops = {
 #ifdef CONFIG_NETPOLICY
 	.ndo_netpolicy_init	= i40e_ndo_netpolicy_init,
 	.ndo_get_irq_info	= i40e_ndo_get_irq_info,
+	.ndo_set_net_policy	= i40e_set_net_policy,
 #endif /* CONFIG_NETPOLICY */
 };
 
